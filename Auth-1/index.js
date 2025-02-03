@@ -4,15 +4,18 @@ const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 
 const app = express();
+app.use(express.json())
 
 dotenv.config();
 
 let PORT = process.env.PORT || 5000;
+const jwtSecretKey = process.env.JWT_SECRET_KEY;
 
 const users = []
 
 app.post("/signup", (req, res) => {
-    const { username, password } = req.body
+    const username = req.body.username
+    const password = req.body.password
 
     users.push({
         username: username,
@@ -28,54 +31,46 @@ app.post("/signup", (req, res) => {
 });
 
 app.post("/signin", (req, res) => {
-    const { username, password } = req.body
-    let FindUser = null;
+    const username = req.body.username;
+    const password = req.body.password;
 
-    for (let i = 0; i < users.length; i++) {
-        if (users[i].username == username && users[i].password == password) {
-            FindUser = user[i]
-        }
-    }
+    let FindUser = users.find(user => user.username === username && user.password === password);
 
     if (FindUser) {
-        const token = jwt.sign({
-            username: username,
-            password: password,
-            firstname,
-            lastname,
-            courses: []
-        }, JWT_SECRET_KEY);
+        const token = jwt.sign(
+            {
+                username: username,
+                password: password
+            },
+            jwtSecretKey, // Use correct variable
+            { expiresIn: "1h" }
+        );
 
-        res.json({
-            token: token
-        })
+        res.json({ token });
     } else {
-        res.status(403).send({
-            message: "Invalid usernameor password"
-        })
+        res.status(403).send({ message: "Invalid username or password" });
     }
     console.log(users)
-
 });
 
 app.get('/me', (req, res) => {
     const token = req.headers.token //jwt
-    const decodedInformation = jwt.verify(token, JWT_SECRET_KEY); // {username: "rishabh@gmail.com"}
+    const decodedInformation = jwt.verify(token, jwtSecretKey); // {username: "rishabh@gmail.com"}
     const unAuthDecodedinfo = jwt.decode(token,); // {username: "rishabh@gmail.com"}
     const username = decodedInformation.username
 
-    let foundUser = null;
+    let FindUser = null;
 
     for (let i = 0; i < users.length; i++) {
         if (users[i].username == username) {
-            foundUser = users[i]
+            FindUser = users[i]
         }
     }
 
-    if (foundUser) {
+    if (FindUser) {
         res.json({
-            username: foundUser.username,
-            password: foundUser.password
+            username: FindUser.username,
+            password: FindUser.password
         })
     } else {
         res.json({
