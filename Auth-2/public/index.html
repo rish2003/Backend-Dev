@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Website</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.7/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function signup() {
+            const username = document.getElementById("signup-username").value;
+            const password = document.getElementById("signup-password").value;
+
+            await axios.post("http://localhost:5000/signup", {
+                username: username,
+                password: password
+            });
+            alert("You are signed up");
+        }
+
+        async function signin() {
+            const username = document.getElementById("signin-username").value;
+            const password = document.getElementById("signin-password").value;
+            const response = await axios.post("http://localhost:5000/signin", {
+                username: username,
+                password: password
+            });
+
+            localStorage.setItem("token", response.data.token);
+            alert("You are signed in");
+        }
+
+        async function getUserInformation() {
+            const response = await axios.get("http://localhost:5000/me", {
+                headers: {
+                    token: localStorage.getItem("token")
+                }
+            });
+            document.getElementById("information").innerHTML = "Username: " + response.data.username + " Password: " + response.data.password;
+        }
+
+        function logout() {
+            localStorage.removeItem("token");
+            alert("You are logged out");
+            document.getElementById("information").innerHTML = "";
+        }
+
+        // Fetch user information on page load if token exists
+        if (localStorage.getItem("token")) {
+            getUserInformation();
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold mb-4">Signup</h2>
+            <input id="signup-username" type="text" placeholder="Username"
+                class="w-full p-2 border border-gray-300 rounded mb-3">
+            <input id="signup-password" type="password" placeholder="Password"
+                class="w-full p-2 border border-gray-300 rounded mb-3">
+            <button onclick="signup()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Sign
+                Up</button>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold mb-4">Signin</h2>
+            <input id="signin-username" type="text" placeholder="Username"
+                class="w-full p-2 border border-gray-300 rounded mb-3">
+            <input id="signin-password" type="password" placeholder="Password"
+                class="w-full p-2 border border-gray-300 rounded mb-3">
+            <button onclick="signin()" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Sign
+                In</button>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold mb-4">User Information</h2>
+            <div id="information" class="text-gray-700"></div>
+        </div>
+
+        <div>
+            <button onclick="logout()" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Logout</button>
+        </div>
+    </div>
+</body>
+
+</html>

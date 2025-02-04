@@ -1,110 +1,95 @@
-//Here We will writing am auth middlleware and pass it to our routes
-const express = require("express")
-const dotenv = require("dotenv")
-const jwt = require("jsonwebtoken")
+const express = require("express");
+const dotenv = require("dotenv");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 dotenv.config();
 
-app.use(express.json())
+app.use(express.json());
 
-const users = []
+const users = [];
 
 const PORT = process.env.PORT || 3000;
 const jwtsecretkey = process.env.JWT_SECRET_KEY;
 
+app.get("/", (req, res) => {
+    res.sendFile(__dirname + "/public/index.html");
+});
+
 function logger(req, res, next) {
-    console.log(req.method + "request came")
-    next()
+    console.log(req.method + " " + req.url + " request came");
+    next();
 }
 
 app.post('/signup', (req, res) => {
-    const username = req.body.username;
-    const password = req.body.password;
+    const { username, password } = req.body;
 
     users.push({
         username: username,
         password: password
-    })
+    });
 
     res.json({
         message: "You are signed up"
     });
 
     console.log(users);
-
 });
 
 app.post('/signin', logger, (req, res) => {
-    const username = req.body.username
-    const password = req.body.password
+    const { username, password } = req.body;
 
-    let foundUser = null
-
-    for (let i = 0; i < users.length; i++) {
-        if (users[i].username == username && users[i].password == password) {
-            foundUser = users[i]
-        }
-    }
+    const foundUser = users.find(user => user.username === username && user.password === password);
 
     if (!foundUser) {
-        res.json({
+        return res.status(401).json({
             message: "Credentials Incorrect"
-        })
-        return
-    } else {
-        const token = jwt.sign({
-            username: users[i].username
-        }, jwtsecretkey);
-        res.header("jwt", token);
-        res.header("random", "rishabh");
-
-        res.json({
-            token: token
-        })
-
+        });
     }
 
+    const token = jwt.sign({ username: foundUser.username }, jwtsecretkey, { expiresIn: "1h" });
     res.json({
-        message: "You are signed in"
-    })
-    console.log(users);
-})
+        token: token
+    });
+});
 
 function auth(req, res, next) {
     const token = req.headers.token;
-    const decodedData = jwt.verify(token, jwtsecretkey)
 
-    if (decodedData.username) {
-        req.username = decodedData.username
-        next()
-    } else {
-        res.json({
-            message: "You are not logged in"
-        })
+    if (!token) {
+        return res.status(401).json({
+            message: "Access denied. No token provided."
+        });
+    }
+
+    try {
+        const decodedData = jwt.verify(token, jwtsecretkey);
+        req.username = decodedData.username;
+        next();
+    } catch (error) {
+        res.status(400).json({
+            message: "Invalid token."
+        });
     }
 }
 
 app.get('/me', logger, auth, (req, res) => {
-    //req = {status,heaeders....,username,password}
     const currUser = req.username;
-    //const token = req.headers.token
-    //const decodedData = jwt.verify(token,JWT_SECRET);
-    //const currentUser = decodedData.username
 
-    for (let i = 0; i < users.length; i++) {
-        if (users[i].username === currUser) {
-            foundUser = users[i]
-        }
+    const foundUser = users.find(user => user.username === currUser);
+
+    if (!foundUser) {
+        return res.status(404).json({
+            message: "User not found."
+        });
     }
 
     res.json({
         username: foundUser.username,
         password: foundUser.password
-    })
-
-})
+    });
+});
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`)
-})
+    console.log(`Server is running on port ${PORT}`);
+});
